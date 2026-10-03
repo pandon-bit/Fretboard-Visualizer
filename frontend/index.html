@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guitar Fretboard Visualizer — C++, Python, SQL & TypeScript</title>
+  <meta name="description" content="Interactive Guitar Fretboard Visualizer with dynamic custom tuning shifts, scale degrees, and Roman numeral diatonic chord voicings.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- =========================================================================
+       App Header & Mode Selector
+       ========================================================================= -->
+  <header class="header">
+    <div class="brand-group">
+      <div class="brand-icon">🎸</div>
+      <div>
+        <h1 class="brand-title">Guitar Fretboard Visualizer</h1>
+        <div class="brand-subtitle">C++ Shared Engine &bull; Python FastAPI &bull; SQLite Relational Music Models</div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <!-- Scale View / Chord View Switcher -->
+      <div class="view-tabs" role="tablist">
+        <button id="tab-scale-mode" class="tab-btn active" role="tab" aria-selected="true">Scale View</button>
+        <button id="tab-chord-mode" class="tab-btn" role="tab" aria-selected="false">Roman Chord View</button>
+      </div>
+
+      <!-- Theme Switcher (Dark / Light) -->
+      <button id="theme-toggle-btn" class="theme-toggle-btn" type="button" aria-label="Toggle light or dark theme" title="Toggle theme (Light / Dark)">
+        <span class="theme-toggle-icon" id="theme-toggle-icon">☀️</span>
+        <span class="theme-toggle-text" id="theme-toggle-text">Light Mode</span>
+      </button>
+
+      <!-- Backend Connection Status -->
+      <div id="api-status-badge" class="status-badge">
+        <span class="status-pulse"></span>
+        <span id="api-status-text">Connecting...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       Control Panels Wrapper
+       ========================================================================= -->
+  <main class="controls-wrapper">
+
+    <!-- Panel 1: Dynamic Custom Tuning -->
+    <section class="panel-card" aria-labelledby="panel-tuning-title">
+      <div class="panel-header">
+        <h2 id="panel-tuning-title" class="panel-title">
+          <span class="panel-title-icon">⚙</span> Dynamic Instrument Tuning
+        </h2>
+        <button id="reset-tuning-btn" class="btn-secondary" title="Reset all strings to Standard E2-A2-D3-G3-B3-E4">Reset Standard</button>
+      </div>
+
+      <div class="control-row">
+        <div class="control-group">
+          <label class="control-label" for="tuning-preset-select">Tuning Preset</label>
+          <select id="tuning-preset-select">
+            <option value="standard" selected>Standard (E-A-D-G-B-E)</option>
+            <option value="drop_d">Drop D (D-A-D-G-B-E)</option>
+            <option value="dadgad">DADGAD (D-A-D-G-A-D)</option>
+            <option value="half_step_down">Half-Step Down (Eb-Ab-Db-Gb-Bb-Eb)</option>
+            <option value="open_d">Open D (D-A-D-F#-A-D)</option>
+            <option value="open_g">Open G (D-G-D-G-B-D)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 6-String Individual Tuning Selectors -->
+      <div class="control-label" style="margin-top: 8px;">Individual String Pitches (High E &rarr; Low E)</div>
+      <div class="tuning-grid">
+        <!-- String 1 -->
+        <div class="tuning-string-box" id="tuning-box-1">
+          <span class="tuning-string-number">STR 1</span>
+          <select class="tuning-string-select" id="string-select-1" aria-label="String 1 Tuning"></select>
+          <span class="tuning-shift-badge" id="shift-badge-1">&plusmn;0</span>
+        </div>
+        <!-- String 2 -->
+        <div class="tuning-string-box" id="tuning-box-2">
+          <span class="tuning-string-number">STR 2</span>
+          <select class="tuning-string-select" id="string-select-2" aria-label="String 2 Tuning"></select>
+          <span class="tuning-shift-badge" id="shift-badge-2">&plusmn;0</span>
+        </div>
+        <!-- String 3 -->
+        <div class="tuning-string-box" id="tuning-box-3">
+          <span class="tuning-string-number">STR 3</span>
+          <select class="tuning-string-select" id="string-select-3" aria-label="String 3 Tuning"></select>
+          <span class="tuning-shift-badge" id="shift-badge-3">&plusmn;0</span>
+        </div>
+        <!-- String 4 -->
+        <div class="tuning-string-box" id="tuning-box-4">
+          <span class="tuning-string-number">STR 4</span>
+          <select class="tuning-string-select" id="string-select-4" aria-label="String 4 Tuning"></select>
+          <span class="tuning-shift-badge" id="shift-badge-4">&plusmn;0</span>
+        </div>
+        <!-- String 5 -->
+        <div class="tuning-string-box" id="tuning-box-5">
+          <span class="tuning-string-number">STR 5</span>
+          <select class="tuning-string-select" id="string-select-5" aria-label="String 5 Tuning"></select>
+          <span class="tuning-shift-badge" id="shift-badge-5">&plusmn;0</span>
+        </div>
+        <!-- String 6 -->
+        <div class="tuning-string-box" id="tuning-box-6">
+          <span class="tuning-string-number">STR 6</span>
+          <select class="tuning-string-select" id="string-select-6" aria-label="String 6 Tuning"></select>
+          <span class="tuning-shift-badge" id="shift-badge-6">&plusmn;0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel 2: Scale View Controls -->
+    <section class="panel-card" id="panel-scale-controls" aria-labelledby="panel-scale-title">
+      <div class="panel-header">
+        <h2 id="panel-scale-title" class="panel-title">
+          <span class="panel-title-icon">🎼</span> Scale Navigator
+        </h2>
+        <span class="legend-item" id="active-scale-summary" style="color: #70a1ff; font-weight: 700;">C Major</span>
+      </div>
+
+      <div class="control-row">
+        <div class="control-group">
+          <label class="control-label" for="scale-root-select">Root Note</label>
+          <select id="scale-root-select">
+            <option value="C" selected>C</option>
+            <option value="C#">C# / Db</option>
+            <option value="D">D</option>
+            <option value="D#">D# / Eb</option>
+            <option value="E">E</option>
+            <option value="F">F</option>
+            <option value="F#">F# / Gb</option>
+            <option value="G">G</option>
+            <option value="G#">G# / Ab</option>
+            <option value="A">A</option>
+            <option value="A#">A# / Bb</option>
+            <option value="B">B</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="scale-type-select">Scale Quality</label>
+          <select id="scale-type-select">
+            <option value="major" selected>Major (Ionian)</option>
+            <option value="minor">Natural Minor (Aeolian)</option>
+            <option value="harmonic minor">Harmonic Minor</option>
+            <option value="minor pentatonic">Minor Pentatonic</option>
+            <option value="major pentatonic">Major Pentatonic</option>
+            <option value="blues">Blues Scale</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="note-display-mode">Note Badge Label</label>
+          <select id="note-display-mode">
+            <option value="notes" selected>Note Name (C, D...)</option>
+            <option value="degrees">Scale Degree (1, 2...)</option>
+            <option value="intervals">Interval (P1, M3...)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="scale-formula-bar" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+        <!-- Dynamically rendered active scale note badges -->
+      </div>
+    </section>
+
+    <!-- Panel 3: Roman Numeral Chord Controls -->
+    <section class="panel-card" id="panel-chord-controls" aria-labelledby="panel-chord-title" style="display: none;">
+      <div class="panel-header">
+        <h2 id="panel-chord-title" class="panel-title">
+          <span class="panel-title-icon">🎹</span> Diatonic Harmony & Voicings
+        </h2>
+        <span id="active-key-summary" style="color: #ffa502; font-weight: 700; font-size: 13px;">Key: C Major</span>
+      </div>
+
+      <div class="control-row">
+        <div class="control-group">
+          <label class="control-label" for="chord-key-root-select">Key Center Root</label>
+          <select id="chord-key-root-select">
+            <option value="C" selected>C</option>
+            <option value="C#">C#</option>
+            <option value="D">D</option>
+            <option value="D#">D#</option>
+            <option value="E">E</option>
+            <option value="F">F</option>
+            <option value="F#">F#</option>
+            <option value="G">G</option>
+            <option value="G#">G#</option>
+            <option value="A">A</option>
+            <option value="A#">A#</option>
+            <option value="B">B</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="chord-key-mode-select">Key Quality</label>
+          <select id="chord-key-mode-select">
+            <option value="Major" selected>Major Key (I - vii°)</option>
+            <option value="Minor">Minor Key (i - VII)</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================================
+       Diatonic Chords Roman Numeral Strip (Visible in Chord Mode)
+       ========================================================================= -->
+  <section id="roman-bar-section" class="roman-bar-container" style="display: none;">
+    <div class="roman-bar-header">
+      <span class="roman-bar-title">Diatonic Triads &amp; Roman Numerals (Relative to Key)</span>
+      <span id="chord-voicing-count-label" style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">C++ Solver: 3 Voicings</span>
+    </div>
+
+    <!-- 7 Roman Numeral Buttons -->
+    <div class="roman-buttons-grid" id="roman-buttons-container">
+      <!-- Buttons populated dynamically: I, ii, iii, IV, V, vi, vii° / i, ii°, III... -->
+    </div>
+
+    <!-- Active Voicing Details Strip -->
+    <div class="voicing-info-strip" id="voicing-info-strip">
+      <div class="voicing-meta">
+        <span class="voicing-chord-title" id="voicing-chord-title">I : C Major</span>
+        <span class="voicing-tab-display" id="voicing-tab-display">Tab: x-3-2-0-1-0</span>
+        <span id="voicing-score-display" style="color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">Difficulty Score: 5.65 &bull; Span: Frets 1–3</span>
+      </div>
+
+      <div class="voicing-nav-btns">
+        <button id="prev-voicing-btn" class="btn-secondary" title="Previous Voicing">&larr; Prev Shape</button>
+        <span id="voicing-index-indicator" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; align-self: center; padding: 0 4px;">1 / 3</span>
+        <button id="next-voicing-btn" class="btn-secondary" title="Next Voicing">Next Shape &rarr;</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================================
+       The 24-Fret Fretboard Card
+       ========================================================================= -->
+  <section class="fretboard-card" aria-label="Interactive Guitar Fretboard">
+    <div class="fretboard-meta-bar">
+      <div class="legend-group">
+        <div class="legend-item"><span class="legend-pill root"></span> Root / Tonic</div>
+        <div class="legend-item"><span class="legend-pill third"></span> 3rd Degree</div>
+        <div class="legend-item"><span class="legend-pill fifth"></span> 5th Degree</div>
+        <div class="legend-item"><span class="legend-pill seventh"></span> 7th Degree</div>
+        <div class="legend-item"><span class="legend-pill scale"></span> Scale Tone</div>
+      </div>
+      <div id="fretboard-status-hint" style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+        Hover over any note for harmonic info
+      </div>
+    </div>
+
+    <!-- Scrollable Fretboard Container -->
+    <div class="fretboard-scroll-area" id="fretboard-scroll-container">
+      <div class="fretboard" id="fretboard">
+        
+        <!-- Row 0: Fret Numbers Header -->
+        <div class="fret-numbers-row" id="fret-numbers-row">
+          <div class="fret-num-cell nut">NUT</div>
+          <!-- Frets 1 to 24 generated dynamically -->
+        </div>
+
+        <!-- Fret Marker Inlays Layer (Pearl Dots) -->
+        <div class="fret-inlay-layer" id="fret-inlay-layer">
+          <!-- Inlays at 3, 5, 7, 9, 12(double), 15, 17, 19, 21, 24(double) -->
+        </div>
+
+        <!-- 6 String Rows (String 1 = High E to String 6 = Low E) -->
+        <div class="string-row" id="string-row-1" data-string="1"><div class="string-wire"></div></div>
+        <div class="string-row" id="string-row-2" data-string="2"><div class="string-wire"></div></div>
+        <div class="string-row" id="string-row-3" data-string="3"><div class="string-wire"></div></div>
+        <div class="string-row" id="string-row-4" data-string="4"><div class="string-wire"></div></div>
+        <div class="string-row" id="string-row-5" data-string="5"><div class="string-wire"></div></div>
+        <div class="string-row" id="string-row-6" data-string="6"><div class="string-wire"></div></div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Floating Tooltip for Interactive Notes -->
+  <div id="fret-tooltip" class="fret-tooltip">
+    <div class="tooltip-title" id="tooltip-title">C4 &bull; Root (P1)</div>
+    <div class="tooltip-row"><span>String:</span><span id="tooltip-string">5 (A)</span></div>
+    <div class="tooltip-row"><span>Fret:</span><span id="tooltip-fret">3</span></div>
+    <div class="tooltip-row"><span>MIDI Pitch:</span><span id="tooltip-midi">48</span></div>
+    <div class="tooltip-row"><span>Scale Degree:</span><span id="tooltip-degree">Degree 1 (Tonic)</span></div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
